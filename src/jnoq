@@ -1,0 +1,4 @@
+(import noq-janet)
+
+(defn main [& args]
+   (noq-janet/main ;args))
