@@ -18,11 +18,11 @@
 
 (test (pattern-match [:symbol "a"]
                      [:symbol "a"])
-      @{"a" [:symbol "a"]})
+      @[["a" [:symbol "a"]]])
 
 (test (pattern-match [:symbol "a"]
                      [:functor "yes" [:symbol "b"]])
-      @{"a" [:functor "yes" [:symbol "b"]]})
+      @[["a" [:functor "yes" [:symbol "b"]]]])
 
 (test (pattern-match [:functor "fails" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
                      [:functor "nope" [:symbol "c"]])
@@ -30,14 +30,70 @@
 
 (test (pattern-match [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
                      [:functor "swap" [:functor "pair" [:functor "f" [:symbol "c"]] [:functor "g" [:symbol "d"]]]])
-      @{"a" [:functor "f" [:symbol "c"]]
-        "b" [:functor "g" [:symbol "d"]]})
+      @[["a" [:functor "f" [:symbol "c"]]]
+        ["b" [:functor "g" [:symbol "d"]]]])
 
 (test (pattern-match [:functor "good-dup" [:symbol "a"] [:symbol "a"]]
                      [:functor "good-dup" [:symbol "g"] [:symbol "g"]])
-      @{"a" [:symbol "g"]})
+      @[["a" [:symbol "g"]]])
 
 (test (pattern-match [:functor "bad-dup" [:symbol "a"] [:symbol "a"]]
                      [:functor "bad-dup" [:symbol "g"] [:functor "pair" [:symbol "one"] [:symbol "two"]]])
       nil)
 
+(test (sub-bindings {"a" [:symbol "d"]
+                     "b" [:symbol "e"]}
+                    [:functor "pair" [:symbol "d"]
+                     [:symbol "e"]])
+      [:functor
+       "pair"
+       [:symbol "d"]
+       [:symbol "e"]])
+
+(test (pattern-match [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
+                     [:functor "swap"
+                      [:functor "pair"
+                       [:symbol "first"]
+                       [:symbol "second"]]])
+      @[["a" [:symbol "first"]] ["b" [:symbol "second"]]])
+
+(test (pattern-match [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
+                     [:functor "foo"
+                      [:functor "swap"
+                       [:functor "pair"
+                        [:symbol "first"]
+                        [:symbol "second"]]]])
+      nil)
+
+(test (rule/apply-all [:rule
+                       {:head [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
+                        :body [:functor "pair" [:symbol "b"] [:symbol "a"]]}]
+                      [:functor "swap"
+                       [:functor "pair"
+                        [:symbol "first"]
+                        [:symbol "second"]]])
+      [:functor
+       "pair"
+       ["b" [:symbol "second"]]
+       ["a" [:symbol "first"]]])
+
+(test (rule/apply-all [:rule
+                       {:head [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
+                        :body [:functor "pair" [:symbol "b"] [:symbol "a"]]}]
+                      [:functor "foo"
+                       [:functor "swap"
+                        [:functor "pair"
+                         [:symbol "first"]
+                         [:symbol "second"]]]
+                       [:functor "swap"
+                        [:functor "pair"
+                         [:symbol "first"]
+                         [:symbol "second"]]]])
+      @[[:functor
+         "pair"
+         ["b" [:symbol "second"]]
+         ["a" [:symbol "first"]]]
+        [:functor
+         "pair"
+         ["b" [:symbol "second"]]
+         ["a" [:symbol "first"]]]])
