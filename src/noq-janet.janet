@@ -17,22 +17,22 @@
        (,$x 1))))
 
 (defn pattern-match [pattern value]
-  (var ret @[])
+  (var ret @{})
 
   (defn pattern-match* [pattern value]
     (match [pattern value]
       [[:symbol sym] _]
-      (if (any? (filter |(= (first $) sym) ret))
-        (if (deep= (. (first (filter |(= (first $) sym) ret))) value)
-          ret (set ret @[]))
-        (array/push ret [sym value]))
+      (if (get ret sym)
+        (if (deep= (get ret sym) value)
+          ret (set ret @{}))
+        (put ret sym value))
 
       [[:functor pname & prest] [:functor vname & vrest]]
       (if (and (= pname vname) (= (length prest) (length vrest)))
         (each pair (map |$& prest vrest)
           (pattern-match* ;pair)
           (if (empty? ret) (break)))
-        (set ret @[])))
+        (set ret @{})))
 
     ret)
 
@@ -58,12 +58,12 @@
 (defn sub-bindings [bindings expr]
   (match expr
     [:symbol name]
-    (if-let [binding (first (filter |(= (first $) name) bindings))]
+    (if-let [binding (bindings name)]
       binding
       expr)
 
     [:functor name & rest]
-    (let [new-name (match (first (filter |(= (first $) name) bindings))
+    (let [new-name (match (bindings name)
                      [:symbol n] n
                      nil name
                      (error "Expected symbol in the place of the functor name"))
