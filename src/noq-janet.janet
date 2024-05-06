@@ -1,17 +1,16 @@
 (use judge)
-(import spork/schema)
 
 (comment
 
-  # Expr
+  # Expressions can have one of two forms
   [:symbol ""]
   [:functor "" @[]]
 
-  # Rule
-  {:head :expr
-   :body :expr})
+  # Rule must have this form
+  [:rule {:head <Expression>
+          :body <Expression>}])
 
-(defmacro . [x]
+(defmacro . [x] # Equivalent to `second`
   (with-syms [$x]
     ~(let [,$x ,x]
        (,$x 1))))
@@ -32,7 +31,9 @@
         (each pair (map |$& prest vrest)
           (pattern-match* ;pair)
           (if (empty? ret) (break)))
-        (set ret @{})))
+        (set ret @{}))
+
+      (error "`pattern-match` received an illegal form"))
 
     ret)
 
@@ -75,26 +76,61 @@
     (sub-bindings bindings ((. rule) :body))
     (match expr
       [:symbol _] expr
+
       [:functor name & rest]
-      (seq [exp :in rest]
-        (rule/apply-all rule exp)))))
+      [:functor name ;(seq [exp :in rest]
+                        (rule/apply-all rule exp))]
+
+      (error "`rule/apply-all` received an illegal form"))))
+
+(def lex-peg
+  ~{:open-paren (/ (<- "(") [:open-paren "("])
+    :close-paren (/ (<- ")") [:close-paren ")"])
+    :symbol (/ (<- (some (+ :w :d))) ,|[:symbol $])
+    :equals (/ (<- "=") [:equals "="])
+    :main (some (+ :open-paren :close-paren :symbol :equals "," :s*))})
+
+(def ast-peg
+  ~{:symbol (/ (<- (some (+ :w :d))) ,|[:symbol $])
+    :functor (/ (* (<- (some (+ :w :d))) "(" (any (* :expr (? ",") (? :s))) ")")
+                ,(fn [name & rest] 
+                   [:functor name ;rest]))
+    :expr (+ :functor :symbol)
+    :main :expr})
+
+(defn expr/from-string [str]
+  (let [match (peg/match ast-peg str)]
+    (if (empty? match)
+      nil
+      (first match))))
+
+(def rule-peg
+  (merge ast-peg
+  ~{:main (* :expr :s* "=" :s* :expr)}))
+
+(defn rule/from-string [str]
+  (let [match (peg/match rule-peg str)]
+    (if (empty? match)
+      nil 
+      [:rule {:head (get match 0)
+              :body (get match 1)}])))
+
+(defn tokens->ast [tokens &opt state]
+  (var state (or state 0))
+  (def [this & rest] tokens)
+  
+  (match this
+    [:symbol name] (case (first (first rest))  
+                     :open-paren [:functor name (tokens->ast rest state)]
+                     :symbol
+                     :close-paren)
+    [:open-paren "("] (tokens->ast rest (+= state 1)))
+    [:close-paren ")"] (tokens->ast rest (-= state 1)))
+
+(comment
+  
+  (tokens->ast [[:symbol "f"] [:open-paren "("] [:close-paren ")"]])
+  )
 
 (defn main [& args]
-
-  # swap(pair(a, b)) = pair(b, a)
-  (def swap [:rule
-             {:head [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
-              :body [:functor "pair" [:symbol "b"] [:symbol "a"]]}])
-
-  (def expr [:functor "foo"
-             [:functor "swap"
-              [:functor "pair"
-               [:symbol "first"]
-               [:symbol "second"]]]
-             [:functor "swap"
-              [:functor "pair"
-               [:symbol "first"]
-               [:symbol "second"]]]])
-
-  (print (rule/to-string swap))
-  (print (expr/to-string expr)))
+  (print "Hello, world!"))
