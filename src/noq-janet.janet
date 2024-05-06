@@ -133,4 +133,24 @@
   )
 
 (defn main [& args]
-  (print "Hello, world!"))
+  (print "Hello, world! Type `.help` for help. Type `.quit` to exit.")
+  
+  (var quit? false)
+  (var input "")
+
+  (while (not quit?)
+    (prin "> ")
+    (flush)
+    (set input (string/trim (getline)))
+    (case input 
+      ".quit" (do (set quit? true) (break))
+      ".exit" (do (set quit? true) (break))
+      ".q" (do (set quit? true) (break))
+      ":q" (do (set quit? true) (break))
+      ":Q" (do (set quit? true) (break))
+      ".help" (print "TODO: Some helpful help here"))
+    (print "Got: " input)
+    (try
+      (do (pp (expr/from-string input)))
+      ([err fib]
+       (print "That didn't work, try again")))))
