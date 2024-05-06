@@ -92,7 +92,7 @@
 
 (def ast-peg
   ~{:symbol (/ (<- (some (+ :w :d))) ,|[:symbol $])
-    :functor (/ (* (<- (some (+ :w :d))) "(" (any (* :expr (? ",") (? :s))) ")")
+    :functor (/ (* :s* (<- (some (+ :w :d))) :s* "(" :s* (any (* :expr (? ",") :s*)) :s* ")" :s*)
                 ,(fn [name & rest] 
                    [:functor name ;rest]))
     :expr (+ :functor :symbol)

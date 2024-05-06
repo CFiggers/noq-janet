@@ -244,6 +244,23 @@
   (test (= test-string (expr/to-string (expr/from-string test-string)))
         true))
 
+(deftest "test whitespace handling in expr/from-string"
+  (def cases ["   swap(pair(a, b))"
+              "swap   (pair(a, b))"
+              "swap(   pair(a, b))"
+              "swap(pair   (a, b))"
+              "swap(pair(   a, b))"
+              "swap(pair(a,    b))"
+              "swap(pair(a, b   ))"])
+  (test (map expr/from-string cases)
+    @[[:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
+      [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
+      [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
+      [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
+      [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
+      [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]
+      [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]]))
+
 (test (rule/from-string "swap(pair(a, b)) = pair(b, a)")
       [:rule
        {:body [:functor
@@ -256,6 +273,37 @@
                 "pair"
                 [:symbol "a"]
                 [:symbol "b"]]]}])
+
+(deftest "test whitespace handling in rule/from-string"
+  (def cases ["   swap(pair(a, b)) = pair(b, a)"
+              "swap   (pair(a, b)) = pair(b, a)"
+              "swap(   pair(a, b)) = pair(b, a)"
+              "swap(pair   (a, b)) = pair(b, a)"
+              "swap(pair(   a, b)) = pair(b, a)"
+              "swap(pair(a,    b)) = pair(b, a)"
+              "swap(pair(a, b   )) = pair(b, a)"])
+  (test (map rule/from-string cases)
+        @[[:rule
+           {:body [:functor "pair" [:symbol "b"] [:symbol "a"]]
+            :head [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]}]
+          [:rule
+           {:body [:functor "pair" [:symbol "b"] [:symbol "a"]]
+            :head [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]}]
+          [:rule
+           {:body [:functor "pair" [:symbol "b"] [:symbol "a"]]
+            :head [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]}]
+          [:rule
+           {:body [:functor "pair" [:symbol "b"] [:symbol "a"]]
+            :head [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]}]
+          [:rule
+           {:body [:functor "pair" [:symbol "b"] [:symbol "a"]]
+            :head [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]}]
+          [:rule
+           {:body [:functor "pair" [:symbol "b"] [:symbol "a"]]
+            :head [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]}]
+          [:rule
+           {:body [:functor "pair" [:symbol "b"] [:symbol "a"]]
+            :head [:functor "swap" [:functor "pair" [:symbol "a"] [:symbol "b"]]]}]]))
 
 (deftest "round trip from string to rule and back again"
   (def test-string "swap(pair(a, b)) = pair(b, a)")
